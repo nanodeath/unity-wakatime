@@ -2,6 +2,7 @@
 
 using System;
 using System.IO;
+using System.Threading;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.Networking;
@@ -145,8 +146,14 @@ namespace WakaTime {
       request.uploadHandler = new UploadHandlerRaw(System.Text.Encoding.UTF8.GetBytes(heartbeatJSON));
       request.SetRequestHeader("Content-Type", "application/json");
 
-      request.SendWebRequest().completed +=
-        operation => {
+      var sentRequest = request.SendWebRequest();
+      while (!sentRequest.isDone) {
+        Thread.Sleep(10);
+      }
+      request.uploadHandler.Dispose();
+
+      // request.SendWebRequest().completed +=
+        // operation => {
           if (request.downloadHandler.text == string.Empty) {
             Debug.LogWarning(
               "<WakaTime> Network is unreachable. Consider disabling completely if you're working offline");
@@ -173,7 +180,7 @@ namespace WakaTime {
             if (_debug) Debug.Log("<WakaTime> Sent heartbeat!");
             _lastHeartbeat = response.data;
           }
-        };
+        // };
     }
 
     [DidReloadScripts]
