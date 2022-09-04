@@ -1,7 +1,10 @@
 #if (UNITY_EDITOR)
 
 using System;
+using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Threading;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -9,6 +12,8 @@ using UnityEngine.Networking;
 using UnityEditor;
 using UnityEditor.Callbacks;
 using UnityEditor.SceneManagement;
+using System.Runtime.InteropServices;
+using Debug = UnityEngine.Debug;
 
 // Heavily inspired by https://github.com/bengsfort/WakaTime-Unity
 
@@ -140,6 +145,9 @@ namespace WakaTime {
         return;
       }
 
+      heartbeat.branch = GetBranch();
+      if (_debug) Debug.Log("<WakaTime> branch is " + heartbeat.branch);
+
       var heartbeatJSON = JsonUtility.ToJson(heartbeat);
 
       var request = UnityWebRequest.Post(URL_PREFIX + "users/current/heartbeats?api_key=" + _apiKey, string.Empty);
@@ -181,6 +189,32 @@ namespace WakaTime {
             _lastHeartbeat = response.data;
           }
         // };
+    }
+
+    private static string GetBranch() {
+      if (Directory.Exists(".git")) {
+        var cmd = new List<string> {
+          "git", "branch", "--show-current"
+        };
+        string fileName;
+        string arguments;
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
+          fileName = "cmd.exe";
+          arguments = "/C " + string.Join(" ", cmd);
+        } else {
+          fileName = cmd[0];
+          arguments = string.Join(" ", cmd.Skip(1));
+        }
+
+        var proc = Process.Start(new ProcessStartInfo(fileName, arguments) {
+          UseShellExecute = false,
+          RedirectStandardOutput = true,
+          CreateNoWindow = true
+        });
+        return proc.StandardOutput.ReadToEnd().Trim();
+      }
+
+      return "master";
     }
 
     [DidReloadScripts]
