@@ -1,0 +1,6 @@
+.idea
+*.csproj
+*.cache
+obj
+*.sln
+*.user
